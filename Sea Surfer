@@ -1,0 +1,43 @@
+Welcome to my first walkthrough on TryHackMe,
+I'm mega97, today we have a new room which called sea surfer
+Let's start:
+first we will check if the machine is pingable or not to do our initial scan using nmap
+
+ping -c 5 10.10.134.126
+64 bytes from 10.10.134.126: icmp_seq=1 ttl=63 time=26.5 ms
+as we see the machine is pingaple
+
+so let's start our scan with
+sudo nmap -sV -O -T5 -vv -oN nmap.log 10.10.134.126 -p-
+
+we got 2 opened ports
+PORT   STATE SERVICE REASON         VERSION
+22/tcp open  ssh     syn-ack ttl 63 OpenSSH 8.2p1 Ubuntu 4ubuntu0.4 (Ubuntu Linux; protocol 2.0)
+80/tcp open  http    syn-ack ttl 63 Apache httpd 2.4.41 ((Ubuntu))
+
+let's visit the http site to see it and start to gather more information
+we got apache default page
+let's view page source to see if there anything interresting...we got nothing
+lets enumerate the domain for web pages using gobuster
+gobuster -u http://10.10.134.126:80/ -w SecLists/Discovery/Web-Content/big.txt
+we got
+/.htaccess (Status: 403)
+/.htpasswd (Status: 403)
+/index.html (Status: 200)
+/server-status (Status: 403)
+all with 403 code that means it's not accessible
+there is something missing
+shall we check the get request header of the page to see if there is something useful !
+we got X-Backend-Server:seasurfer.thm
+this header leaks the hostname
+let's edit our /etc/hosts file and add the machineip  seasurfer.thm
+then navigate to http://seasurfer/
+it worked
+let's scan with gobuster again
+gobuster -u http://seasurfer.thm/ -w SecLists/Discovery/Web-Content/big.txt
+we got 
+/login (Status: 302) that redirects to the ordinary worpress login page
+/adminer (Status: 301) directory that redirect us to akind of database login page
+after navigation to http://seasurfer.thm/adminer/ we find it's version is Adminer 4.8.1
+let's search for exploit for this version, unfortunatly there is no vulns for this version it seems to be updated.
+let's continue surfing the web page until we find something interesting........
